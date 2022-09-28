@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -18,6 +19,7 @@ type Engine struct {
 	writer  http.ResponseWriter
 	request *http.Request
 	Vars    map[string]string
+	Query   url.Values
 }
 
 // Provides a text output to the browser
@@ -54,6 +56,7 @@ func (u Engine) Method(methods ...string) {
 	}
 }
 
+// Gets the post body for requests
 func (u Engine) Body(str any) {
 	var decoder = json.NewDecoder(u.request.Body)
 	decoder.Decode(str)
@@ -68,23 +71,19 @@ func (r Remux) Handle(route string, handler func(e Engine)) {
 		route = "/" + splitted[1] + "/"
 	}
 	http.HandleFunc(route, func(w http.ResponseWriter, r *http.Request) {
+		var query = r.URL.Query()
 		if route != "/" {
 			var str = remove(convert(ogroute), 0)
 			var newstr = remove(convert(TrimSuffix(r.URL.Path, "/")), 0)
 			var matched = match(str, newstr)
-			// var decoder = json.NewDecoder(r.Body)
-			// var t struct{}
-			// decoder.Decode(&t)
-			handler(Engine{w, r, matched})
+			handler(Engine{w, r, matched, query})
 		} else {
-			// var decoder = json.NewDecoder(r.Body)
-			// var t struct{}
-			// decoder.Decode(&t)
-			handler(Engine{w, r, nil})
+			handler(Engine{w, r, nil, query})
 		}
 	})
 }
 
+// serves static files at a given url handler
 func (r Remux) FileServer(url string, fileUrl string) {
 	var fs = http.FileServer(http.Dir(fileUrl))
 	if strings.HasSuffix(url, "/") {
