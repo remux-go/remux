@@ -1,4 +1,4 @@
-package main
+package Remux
 
 import (
 	"encoding/json"
