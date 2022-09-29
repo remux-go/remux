@@ -62,6 +62,8 @@ func (u Engine) Body(str any) {
 	decoder.Decode(str)
 }
 
+var mux = http.NewServeMux()
+
 // Basic handler to handle incomimg requests
 func (r Remux) Handle(route string, handler func(e Engine)) {
 	var ogroute = route
@@ -69,7 +71,7 @@ func (r Remux) Handle(route string, handler func(e Engine)) {
 	if !(strings.HasSuffix(route, "/")) {
 		route += "/"
 	}
-	http.HandleFunc(route, func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc(route, func(w http.ResponseWriter, r *http.Request) {
 		var query = r.URL.Query()
 		if route != "/" {
 			var str = remove(convert(ogroute), 0)
@@ -94,7 +96,7 @@ func (r Remux) FileServer(url string, fileUrl string) {
 
 // Start your app 🔥!
 func (r Remux) Serve() {
-	log.Fatal(http.ListenAndServe("localhost:"+r.Port, nil))
+	log.Fatal(http.ListenAndServe("localhost:"+r.Port, mux))
 }
 
 func convert(s string) []string {
