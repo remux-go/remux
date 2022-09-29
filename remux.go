@@ -16,10 +16,11 @@ type Remux struct {
 
 // The heart of remux, containing utilities to perform action
 type Engine struct {
-	writer  http.ResponseWriter
-	request *http.Request
+	Writer  http.ResponseWriter
+	Request *http.Request
 	Vars    map[string]string
 	Query   url.Values
+	Method  string
 }
 
 // Provides a text output to the browser
@@ -47,7 +48,7 @@ func (u Engine) File(url string, data any) {
 }
 
 // Allows only the given method to be passed
-func (u Engine) Method(methods ...string) {
+func (u Engine) OnlyMethod(methods ...string) {
 	for i, v := range methods {
 		if u.request.Method != strings.ToUpper(v) && i == len(methods)-1 {
 			u.writer.WriteHeader(405)
@@ -77,9 +78,9 @@ func (r Remux) Handle(route string, handler func(e Engine)) {
 			var str = remove(convert(ogroute), 0)
 			var newstr = remove(convert(strings.TrimSuffix(r.URL.Path, "/")), 0)
 			var matched = match(str, newstr)
-			handler(Engine{w, r, matched, query})
+			handler(Engine{w, r, matched, query, r.Method})
 		} else {
-			handler(Engine{w, r, nil, query})
+			handler(Engine{w, r, nil, query, r.Method})
 		}
 	})
 }
