@@ -16,11 +16,18 @@ type Remux struct {
 
 // The heart of remux, containing utilities to perform action
 type Engine struct {
-	Writer  http.ResponseWriter
-	Request *http.Request
+	writer  http.ResponseWriter
+	request *http.Request
 	Vars    map[string]string
 	Query   url.Values
-	Method  string
+}
+
+type Route struct {
+	Url    string
+	GET    func(e Engine)
+	POST   func(e Engine)
+	PUT    func(e Engine)
+	DELETE func(e Engine)
 }
 
 // Provides a text output to the browser
@@ -48,7 +55,7 @@ func (u Engine) File(url string, data any) {
 }
 
 // Allows only the given method to be passed
-func (u Engine) OnlyMethod(methods ...string) {
+func (u Engine) Method(methods ...string) {
 	for i, v := range methods {
 		if u.request.Method != strings.ToUpper(v) && i == len(methods)-1 {
 			u.writer.WriteHeader(405)
@@ -65,38 +72,83 @@ func (u Engine) Body(str any) {
 
 var mux = http.NewServeMux()
 
-// Basic handler to handle incomimg requests
-func (r Remux) Handle(route string, handler func(e Engine)) {
-	var ogroute = route
-	route = strings.Split(route, "{")[0]
-	if !(strings.HasSuffix(route, "/")) {
-		route += "/"
-	}
-	mux.HandleFunc(route, func(w http.ResponseWriter, r *http.Request) {
-		var query = r.URL.Query()
-		if route != "/" {
-			var str = remove(convert(ogroute), 0)
-			var newstr = remove(convert(strings.TrimSuffix(r.URL.Path, "/")), 0)
-			var matched = match(str, newstr)
-			handler(Engine{w, r, matched, query, r.Method})
-		} else {
-			handler(Engine{w, r, nil, query, r.Method})
+var routes = []Route{}
+
+// Handle incoming GET requests
+func (r Remux) Get(route string, handler func(e Engine)) {
+	if len(routes) == 0 {
+		routes = append(routes, Route{route, handler, nil, nil, nil})
+	} else {
+		for i, v := range routes {
+			if v.Url == route && i == len(routes)-1 {
+				routes[i].GET = handler
+			} else if v.Url != route && i == len(routes)-1 {
+				routes = append(routes, Route{route, handler, nil, nil, nil})
+			}
 		}
-	})
+	}
+}
+
+// Handle incoming POST requests
+func (r Remux) Post(route string, handler func(e Engine)) {
+	if len(routes) == 0 {
+		routes = append(routes, Route{route, nil, handler, nil, nil})
+	} else {
+		for i, v := range routes {
+			if v.Url == route && i == len(routes)-1 {
+				routes[i].POST = handler
+			} else if v.Url != route && i == len(routes)-1 {
+				routes = append(routes, Route{route, nil, handler, nil, nil})
+			}
+		}
+	}
+}
+
+// Handle incoming PUT requests
+func (r Remux) Put(route string, handler func(e Engine)) {
+	if len(routes) == 0 {
+		routes = append(routes, Route{route, nil, nil, handler, nil})
+	} else {
+		for i, v := range routes {
+			if v.Url == route && i == len(routes)-1 {
+				routes[i].PUT = handler
+			} else if v.Url != route && i == len(routes)-1 {
+				routes = append(routes, Route{route, nil, nil, handler, nil})
+			}
+		}
+	}
+}
+
+// Handle incoming DELETE requests
+func (r Remux) Delete(route string, handler func(e Engine)) {
+	if len(routes) == 0 {
+		routes = append(routes, Route{route, nil, nil, nil, handler})
+	} else {
+		for i, v := range routes {
+			if v.Url == route && i == len(routes)-1 {
+				routes[i].DELETE = handler
+			} else if v.Url != route && i == len(routes)-1 {
+				routes = append(routes, Route{route, nil, nil, nil, handler})
+			}
+		}
+	}
 }
 
 // serve files at a given path handler
 func (r Remux) FileServer(url string, fileUrl string) {
-	var fs = mux.FileServer(http.Dir(fileUrl))
+	var fs = http.FileServer(http.Dir(fileUrl))
 	if strings.HasSuffix(url, "/") {
-		mux.Handle(url, http.StripPrefix(url, fs))
+		http.Handle(url, http.StripPrefix(url, fs))
 	} else {
-		mux.Handle(url+"/", http.StripPrefix(url+"/", fs))
+		http.Handle(url+"/", http.StripPrefix(url+"/", fs))
 	}
 }
 
 // Start your app 🔥!
 func (r Remux) Serve() {
+	for _, v := range routes {
+		spinup(v)
+	}
 	log.Fatal(http.ListenAndServe("localhost:"+r.Port, mux))
 }
 
@@ -126,4 +178,43 @@ func match(arr []string, newarr []string) map[string]string {
 		}
 	}
 	return matched
+}
+
+func spinup(v Route) {
+	var route = v.Url
+	var ogroute = v.Url
+	route = strings.Split(route, "{")[0]
+	if !(strings.HasSuffix(route, "/")) {
+		route += "/"
+	}
+	mux.HandleFunc(route, func(w http.ResponseWriter, r *http.Request) {
+		var query = r.URL.Query()
+		if route != "/" {
+			var str = remove(convert(ogroute), 0)
+			var newstr = remove(convert(strings.TrimSuffix(r.URL.Path, "/")), 0)
+			var matched = match(str, newstr)
+			w.WriteHeader(200)
+			switch r.Method {
+			case "GET":
+				v.GET(Engine{w, r, matched, query})
+			case "POST":
+				v.POST(Engine{w, r, matched, query})
+			case "PUT":
+				v.PUT(Engine{w, r, matched, query})
+			case "DELETE":
+				v.DELETE(Engine{w, r, matched, query})
+			}
+		} else {
+			switch r.Method {
+			case "GET":
+				v.GET(Engine{w, r, nil, query})
+			case "POST":
+				v.POST(Engine{w, r, nil, query})
+			case "PUT":
+				v.PUT(Engine{w, r, nil, query})
+			case "DELETE":
+				v.DELETE(Engine{w, r, nil, query})
+			}
+		}
+	})
 }
