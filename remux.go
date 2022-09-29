@@ -1,4 +1,4 @@
-package remux
+package main
 
 import (
 	"encoding/json"
@@ -140,7 +140,7 @@ func (r Remux) FileServer(url string, fileUrl string) {
 	if strings.HasSuffix(url, "/") {
 		http.Handle(url, http.StripPrefix(url, fs))
 	} else {
-		mux.Handle(url+"/", http.StripPrefix(url+"/", fs))
+		http.Handle(url+"/", http.StripPrefix(url+"/", fs))
 	}
 }
 
@@ -184,8 +184,14 @@ func spinup(v Route) {
 	var route = v.Url
 	var ogroute = v.Url
 	route = strings.Split(route, "{")[0]
-	if !(strings.HasSuffix(route, "/")) {
-		route += "/"
+	for i, v := range routes {
+		if (v.Url == route || v.Url == strings.TrimSuffix(route, "/") || v.Url == route+"/") && i == len(routes)-1 {
+			if !(strings.Contains(v.Url, "{")) {
+				if !(strings.HasSuffix(route, "/")) {
+					route += "/"
+				}
+			}
+		}
 	}
 	mux.HandleFunc(route, func(w http.ResponseWriter, r *http.Request) {
 		var query = r.URL.Query()
