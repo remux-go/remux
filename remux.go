@@ -1,4 +1,4 @@
-package remux
+package main
 
 import (
 	"encoding/json"
@@ -56,7 +56,7 @@ func (u Engine) Method(methods ...string) {
 	}
 }
 
-// Gets the post body for requests
+// Get the post body of incoming (post) requests
 func (u Engine) Body(str any) {
 	var decoder = json.NewDecoder(u.request.Body)
 	decoder.Decode(str)
@@ -64,17 +64,16 @@ func (u Engine) Body(str any) {
 
 // Basic handler to handle incomimg requests
 func (r Remux) Handle(route string, handler func(e Engine)) {
-	// /greet/{bob}
 	var ogroute = route
-	if route != "/" {
-		var splitted = convert(route)
-		route = "/" + splitted[1] + "/"
+	route = strings.Split(route, "{")[0]
+	if !(strings.HasSuffix(route, "/")) {
+		route += "/"
 	}
 	http.HandleFunc(route, func(w http.ResponseWriter, r *http.Request) {
 		var query = r.URL.Query()
 		if route != "/" {
 			var str = remove(convert(ogroute), 0)
-			var newstr = remove(convert(TrimSuffix(r.URL.Path, "/")), 0)
+			var newstr = remove(convert(strings.TrimSuffix(r.URL.Path, "/")), 0)
 			var matched = match(str, newstr)
 			handler(Engine{w, r, matched, query})
 		} else {
@@ -83,7 +82,7 @@ func (r Remux) Handle(route string, handler func(e Engine)) {
 	})
 }
 
-// serves static files at a given url handler
+// serve files at a given path handler
 func (r Remux) FileServer(url string, fileUrl string) {
 	var fs = http.FileServer(http.Dir(fileUrl))
 	if strings.HasSuffix(url, "/") {
@@ -100,11 +99,6 @@ func (r Remux) Serve() {
 
 func convert(s string) []string {
 	var splitted = strings.Split(s, "/")
-	// for i, v := range splitted {
-	// 	if v == "" {
-	// 		splitted = remove(splitted, i)
-	// 	}
-	// }
 	return splitted
 }
 
@@ -113,27 +107,20 @@ func remove(arr []string, index int) []string {
 }
 
 func match(arr []string, newarr []string) map[string]string {
-	var matched = make(map[string]string)
-	for i, v := range arr {
-		if strings.Contains(v, "{") || strings.Contains(v, "}") {
-			// name}
-			var first = strings.Split(v, "{")
-			var second = strings.Split(first[1], "}")
-			v = second[0]
-		} else if strings.Contains(newarr[i], "{") || strings.Contains(newarr[i], "}") {
-			// name}
-			var first = strings.Split(v, "{")
-			var second = strings.Split(first[1], "}")
-			v = second[0]
+	var matched = make(map[string]string, 100)
+	if len(arr) == len(newarr) {
+		for i, v := range arr {
+			if strings.Contains(v, "{") || strings.Contains(v, "}") {
+				var first = strings.Split(v, "{")
+				var second = strings.Split(first[1], "}")
+				v = second[0]
+			} else if strings.Contains(newarr[i], "{") || strings.Contains(newarr[i], "}") {
+				var first = strings.Split(v, "{")
+				var second = strings.Split(first[1], "}")
+				v = second[0]
+			}
+			matched[v] = newarr[i]
 		}
-		matched[v] = newarr[i]
 	}
 	return matched
-}
-
-func TrimSuffix(s, suffix string) string {
-	if strings.HasSuffix(s, suffix) {
-		s = s[:len(s)-len(suffix)]
-	}
-	return s
 }
