@@ -140,7 +140,7 @@ func (r Remux) FileServer(url string, fileUrl string) {
 	if strings.HasSuffix(url, "/") {
 		http.Handle(url, http.StripPrefix(url, fs))
 	} else {
-		http.Handle(url+"/", http.StripPrefix(url+"/", fs))
+		mux.Handle(url+"/", http.StripPrefix(url+"/", fs))
 	}
 }
 
