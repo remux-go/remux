@@ -86,11 +86,11 @@ func (r Remux) Handle(route string, handler func(e Engine)) {
 
 // serve files at a given path handler
 func (r Remux) FileServer(url string, fileUrl string) {
-	var fs = http.FileServer(http.Dir(fileUrl))
+	var fs = mux.FileServer(http.Dir(fileUrl))
 	if strings.HasSuffix(url, "/") {
-		http.Handle(url, http.StripPrefix(url, fs))
+		mux.Handle(url, http.StripPrefix(url, fs))
 	} else {
-		http.Handle(url+"/", http.StripPrefix(url+"/", fs))
+		mux.Handle(url+"/", http.StripPrefix(url+"/", fs))
 	}
 }
 
