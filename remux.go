@@ -76,6 +76,7 @@ var routes = []Route{}
 
 // Handle incoming GET requests
 func (r Remux) Get(route string, handler func(e Engine)) {
+	// route = strings.TrimSuffix(strings.Split(route, "{")[0], "/")
 	if len(routes) == 0 {
 		routes = append(routes, Route{route, handler, nil, nil, nil})
 	} else {
@@ -91,6 +92,7 @@ func (r Remux) Get(route string, handler func(e Engine)) {
 
 // Handle incoming POST requests
 func (r Remux) Post(route string, handler func(e Engine)) {
+	// route = strings.TrimSuffix(strings.Split(route, "{")[0], "/")
 	if len(routes) == 0 {
 		routes = append(routes, Route{route, nil, handler, nil, nil})
 	} else {
@@ -138,9 +140,9 @@ func (r Remux) Delete(route string, handler func(e Engine)) {
 func (r Remux) FileServer(url string, fileUrl string) {
 	var fs = http.FileServer(http.Dir(fileUrl))
 	if strings.HasSuffix(url, "/") {
-		mux.Handle(url, http.StripPrefix(url, fs))
+		http.Handle(url, http.StripPrefix(url, fs))
 	} else {
-		mux.Handle(url+"/", http.StripPrefix(url+"/", fs))
+		http.Handle(url+"/", http.StripPrefix(url+"/", fs))
 	}
 }
 
@@ -184,15 +186,6 @@ func spinup(v Route) {
 	var route = v.Url
 	var ogroute = v.Url
 	route = strings.Split(route, "{")[0]
-	for i, v := range routes {
-		if (v.Url == route || v.Url == strings.TrimSuffix(route, "/") || v.Url == route+"/") && i == len(routes)-1 {
-			if !(strings.Contains(v.Url, "{")) {
-				if !(strings.HasSuffix(route, "/")) {
-					route += "/"
-				}
-			}
-		}
-	}
 	mux.HandleFunc(route, func(w http.ResponseWriter, r *http.Request) {
 		var query = r.URL.Query()
 		if route != "/" {
@@ -202,24 +195,40 @@ func spinup(v Route) {
 			w.WriteHeader(200)
 			switch r.Method {
 			case "GET":
-				v.GET(Engine{w, r, matched, query})
+				if v.GET != nil {
+					v.GET(Engine{w, r, matched, query})
+				}
 			case "POST":
-				v.POST(Engine{w, r, matched, query})
+				if v.POST != nil {
+					v.POST(Engine{w, r, matched, query})
+				}
 			case "PUT":
-				v.PUT(Engine{w, r, matched, query})
+				if v.PUT != nil {
+					v.PUT(Engine{w, r, matched, query})
+				}
 			case "DELETE":
-				v.DELETE(Engine{w, r, matched, query})
+				if v.DELETE != nil {
+					v.DELETE(Engine{w, r, matched, query})
+				}
 			}
 		} else {
 			switch r.Method {
 			case "GET":
-				v.GET(Engine{w, r, nil, query})
+				if v.GET != nil {
+					v.GET(Engine{w, r, nil, query})
+				}
 			case "POST":
-				v.POST(Engine{w, r, nil, query})
+				if v.POST != nil {
+					v.POST(Engine{w, r, nil, query})
+				}
 			case "PUT":
-				v.PUT(Engine{w, r, nil, query})
+				if v.PUT != nil {
+					v.PUT(Engine{w, r, nil, query})
+				}
 			case "DELETE":
-				v.DELETE(Engine{w, r, nil, query})
+				if v.DELETE != nil {
+					v.DELETE(Engine{w, r, nil, query})
+				}
 			}
 		}
 	})
