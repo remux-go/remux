@@ -140,9 +140,9 @@ func (r Remux) Delete(route string, handler func(e Engine)) {
 func (r Remux) FileServer(url string, fileUrl string) {
 	var fs = http.FileServer(http.Dir(fileUrl))
 	if strings.HasSuffix(url, "/") {
-		http.Handle(url, http.StripPrefix(url, fs))
+		mux.Handle(url, http.StripPrefix(url, fs))
 	} else {
-		http.Handle(url+"/", http.StripPrefix(url+"/", fs))
+		mux.Handle(url+"/", http.StripPrefix(url+"/", fs))
 	}
 }
 
