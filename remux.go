@@ -1,4 +1,4 @@
-package remux
+package main
 
 import (
 	"encoding/json"
@@ -45,7 +45,7 @@ func (u Engine) Json(raw any) error {
 
 // Redirects a handler to a given url passed into this function
 func (u Engine) Redirect(url string) {
-	http.Redirect(u.writer, u.request, url, http.StatusMovedPermanently)
+	http.Redirect(u.writer, u.request, url, http.StatusSeeOther)
 }
 
 // Serves a file to a given url
@@ -147,9 +147,9 @@ func (r Remux) Delete(route string, handler func(e Engine)) {
 func (r Remux) FileServer(url string, fileUrl string) {
 	var fs = http.FileServer(http.Dir(fileUrl))
 	if strings.HasSuffix(url, "/") {
-		http.Handle(url, http.StripPrefix(url, fs))
+		mux.Handle(url, http.StripPrefix(url, fs))
 	} else {
-		http.Handle(url+"/", http.StripPrefix(url+"/", fs))
+		mux.Handle(url+"/", http.StripPrefix(url+"/", fs))
 	}
 }
 
