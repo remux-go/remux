@@ -76,7 +76,7 @@ var routes = []Route{}
 
 // Handle incoming GET requests
 func (r Remux) Get(route string, handler func(e Engine)) {
-	route = strings.Split(route, "{")[0]
+	// route = strings.Split(route, "{")[0]
 	if len(routes) == 0 {
 		routes = append(routes, Route{route, handler, nil, nil, nil})
 	} else {
