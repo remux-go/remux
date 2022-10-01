@@ -76,13 +76,14 @@ var routes = []Route{}
 
 // Handle incoming GET requests
 func (r Remux) Get(route string, handler func(e Engine)) {
-	// route = strings.TrimSuffix(strings.Split(route, "{")[0], "/")
+	route = strings.Split(route, "{")[0]
 	if len(routes) == 0 {
 		routes = append(routes, Route{route, handler, nil, nil, nil})
 	} else {
 		for i, v := range routes {
 			if v.Url == route && i == len(routes)-1 {
 				routes[i].GET = handler
+				break
 			} else if v.Url != route && i == len(routes)-1 {
 				routes = append(routes, Route{route, handler, nil, nil, nil})
 			}
@@ -93,12 +94,14 @@ func (r Remux) Get(route string, handler func(e Engine)) {
 // Handle incoming POST requests
 func (r Remux) Post(route string, handler func(e Engine)) {
 	// route = strings.TrimSuffix(strings.Split(route, "{")[0], "/")
+	route = strings.Split(route, "{")[0]
 	if len(routes) == 0 {
 		routes = append(routes, Route{route, nil, handler, nil, nil})
 	} else {
 		for i, v := range routes {
-			if v.Url == route && i == len(routes)-1 {
+			if v.Url == route {
 				routes[i].POST = handler
+				break
 			} else if v.Url != route && i == len(routes)-1 {
 				routes = append(routes, Route{route, nil, handler, nil, nil})
 			}
@@ -108,12 +111,14 @@ func (r Remux) Post(route string, handler func(e Engine)) {
 
 // Handle incoming PUT requests
 func (r Remux) Put(route string, handler func(e Engine)) {
+	route = strings.Split(route, "{")[0]
 	if len(routes) == 0 {
 		routes = append(routes, Route{route, nil, nil, handler, nil})
 	} else {
 		for i, v := range routes {
-			if v.Url == route && i == len(routes)-1 {
+			if v.Url == route {
 				routes[i].PUT = handler
+				break
 			} else if v.Url != route && i == len(routes)-1 {
 				routes = append(routes, Route{route, nil, nil, handler, nil})
 			}
@@ -123,12 +128,14 @@ func (r Remux) Put(route string, handler func(e Engine)) {
 
 // Handle incoming DELETE requests
 func (r Remux) Delete(route string, handler func(e Engine)) {
+	route = strings.Split(route, "{")[0]
 	if len(routes) == 0 {
 		routes = append(routes, Route{route, nil, nil, nil, handler})
 	} else {
 		for i, v := range routes {
-			if v.Url == route && i == len(routes)-1 {
+			if v.Url == route {
 				routes[i].DELETE = handler
+				break
 			} else if v.Url != route && i == len(routes)-1 {
 				routes = append(routes, Route{route, nil, nil, nil, handler})
 			}
@@ -140,9 +147,9 @@ func (r Remux) Delete(route string, handler func(e Engine)) {
 func (r Remux) FileServer(url string, fileUrl string) {
 	var fs = http.FileServer(http.Dir(fileUrl))
 	if strings.HasSuffix(url, "/") {
-		mux.Handle(url, http.StripPrefix(url, fs))
+		http.Handle(url, http.StripPrefix(url, fs))
 	} else {
-		mux.Handle(url+"/", http.StripPrefix(url+"/", fs))
+		http.Handle(url+"/", http.StripPrefix(url+"/", fs))
 	}
 }
 
