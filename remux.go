@@ -30,6 +30,8 @@ type Route struct {
 	DELETE func(e Engine)
 }
 
+var mux = http.NewServeMux()
+
 // Provides a text output to the browser
 func (u Engine) Text(s string) {
 	u.writer.Write([]byte(s))
@@ -45,7 +47,7 @@ func (u Engine) Json(raw any) error {
 
 // Redirects a handler to a given url passed into this function
 func (u Engine) Redirect(url string) {
-	http.Redirect(u.writer, u.request, url, http.StatusSeeOther)
+	http.Redirect(u.writer, u.request, url, http.StatusMovedPermanently)
 }
 
 // Serves a file to a given url
@@ -69,8 +71,6 @@ func (u Engine) Body(str any) {
 	var decoder = json.NewDecoder(u.request.Body)
 	decoder.Decode(str)
 }
-
-var mux = http.NewServeMux()
 
 var routes = []Route{}
 
@@ -199,7 +199,7 @@ func spinup(v Route) {
 			var str = remove(convert(ogroute), 0)
 			var newstr = remove(convert(strings.TrimSuffix(r.URL.Path, "/")), 0)
 			var matched = match(str, newstr)
-			w.WriteHeader(200)
+			// w.WriteHeader(200)
 			switch r.Method {
 			case "GET":
 				if v.GET != nil {
