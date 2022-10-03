@@ -16,8 +16,8 @@ type Remux struct {
 
 // The heart of remux, containing utilities to perform action
 type Engine struct {
-	writer  http.ResponseWriter
-	request *http.Request
+	Writer  http.ResponseWriter
+	Request *http.Request
 	Vars    map[string]string
 	Query   url.Values
 }
@@ -34,47 +34,47 @@ var mux = http.NewServeMux()
 
 // Provides a text output to the browser
 func (u Engine) Text(s string) {
-	u.writer.Write([]byte(s))
+	u.Writer.Write([]byte(s))
 }
 
 // Provides a "json" output to the browser, just make sure to provide data for it to convert
 func (u Engine) Json(raw any) error {
 	var data, err = json.Marshal(raw)
-	u.writer.Header().Set("Content-Type", "application/json")
-	u.writer.Write(data)
+	u.Writer.Header().Set("Content-Type", "application/json")
+	u.Writer.Write(data)
 	return err
 }
 
 // Redirects a handler to a given url passed into this function
 func (u Engine) Redirect(url string) {
-	http.Redirect(u.writer, u.request, url, http.StatusMovedPermanently)
+	http.Redirect(u.Writer, u.Request, url, http.StatusMovedPermanently)
 }
 
 // Serves a file to a given url
 func (u Engine) File(url string, data any) {
 	var render, _ = template.ParseFiles(url)
-	render.Execute(u.writer, data)
+	render.Execute(u.Writer, data)
 }
 
 // Allows only the given method to be passed
 func (u Engine) Method(methods ...string) {
 	for i, v := range methods {
-		if u.request.Method != strings.ToUpper(v) && i == len(methods)-1 {
-			u.writer.WriteHeader(405)
+		if u.Request.Method != strings.ToUpper(v) && i == len(methods)-1 {
+			u.Writer.WriteHeader(405)
 			return
 		}
 	}
 }
 
-// Get the post body of incoming (post) requests
+// Get the post body of incoming (post) Requests
 func (u Engine) Body(str any) {
-	var decoder = json.NewDecoder(u.request.Body)
+	var decoder = json.NewDecoder(u.Request.Body)
 	decoder.Decode(str)
 }
 
 var routes = []Route{}
 
-// Handle incoming GET requests
+// Handle incoming GET Requests
 func (r Remux) Get(route string, handler func(e Engine)) {
 	// route = strings.Split(route, "{")[0]
 	if len(routes) == 0 {
@@ -91,7 +91,7 @@ func (r Remux) Get(route string, handler func(e Engine)) {
 	}
 }
 
-// Handle incoming POST requests
+// Handle incoming POST Requests
 func (r Remux) Post(route string, handler func(e Engine)) {
 	// route = strings.TrimSuffix(strings.Split(route, "{")[0], "/")
 	route = strings.Split(route, "{")[0]
@@ -109,7 +109,7 @@ func (r Remux) Post(route string, handler func(e Engine)) {
 	}
 }
 
-// Handle incoming PUT requests
+// Handle incoming PUT Requests
 func (r Remux) Put(route string, handler func(e Engine)) {
 	route = strings.Split(route, "{")[0]
 	if len(routes) == 0 {
@@ -126,7 +126,7 @@ func (r Remux) Put(route string, handler func(e Engine)) {
 	}
 }
 
-// Handle incoming DELETE requests
+// Handle incoming DELETE Requests
 func (r Remux) Delete(route string, handler func(e Engine)) {
 	route = strings.Split(route, "{")[0]
 	if len(routes) == 0 {
